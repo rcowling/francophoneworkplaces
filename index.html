@@ -87,6 +87,19 @@
          
         });
 
+        // Create a style for the buildingsLayer
+        const buildingsRenderer = {
+         type: "simple",  // autocasts as new SimpleRenderer()
+         symbol: {
+           type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+           color: "rgba(0, 0, 0, 0)",
+           outline: {  // autocasts as new SimpleLineSymbol()
+             width: "3px",
+             color: "red"
+           }
+         }
+        };        
+
         /********************
          * Add map layers
          ********************/
@@ -95,6 +108,7 @@
         const FP1917 = new FeatureLayer({
           url: "https://voyageur.mtu.edu/server/rest/services/Hosted/Francophone_workplace_footprints/FeatureServer",
           id: "sanborn17",
+          renderer: buildingsRenderer,
           outFields: ["*"]
         });
 
