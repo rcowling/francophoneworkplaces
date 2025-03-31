@@ -46,6 +46,7 @@
       .modal-dialog {
         position: absolute !important;        
         right: 15px;
+        top: 50px;
         border-radius: 0px !important;
         border-top-left-radius: 0px !important;
       }
@@ -125,138 +126,127 @@
           content: "test"
         };
 
-reactiveUtils.watch(
-  () => view.popup.selectedFeature,
-  (graphic) => {
-    if (graphic) {
-      if (graphic.layer.id === "sanborn17") {
-        const uniqueID = graphic.attributes.uniqueid;
-        const bldgID = graphic.attributes.building_id; // the building ID number from the historical record locations.
-        const address = graphic.attributes.name;
-        console.log(uniqueID, bldgID);
-        let query = recLocs.createQuery();
-        // query the person record locations for all people living in the bldgID
-        query.where = "building_id = '" + bldgID + "'";        
-        query.outFields = ["*"];
-        // execute the query for the historical records based on the id of the building clicked
-        recLocs.queryFeatures(query)
-          .then(function(response) {
-            console.log(response);
-            if (response.features.length > 0) {
+        document.getElementById("modalClose").onclick = function() {
+          recModal.hide();
+        };
 
-            // Clear existing list group content
-            const listGroupContainer = document.getElementById('list-group');
-            listGroupContainer.innerHTML = '';
+        reactiveUtils.watch(
+          () => view.popup.selectedFeature,
+          (graphic) => {
+            if (graphic) {
+              if (graphic.layer.id === "sanborn17") {
+                const uniqueID = graphic.attributes.uniqueid;
+                const bldgID = graphic.attributes.building_id; // the building ID number from the historical record locations.
+                const address = graphic.attributes.name;
+                console.log(uniqueID, bldgID);
+                let query = recLocs.createQuery();
+                // query the person record locations for all people living in the bldgID
+                query.where = "building_id = '" + bldgID + "'";        
+                query.outFields = ["*"];
+                // execute the query for the historical records based on the id of the building clicked
+                recLocs.queryFeatures(query)
+                  .then(function(response) {
+                    console.log(response);
+                    if (response.features.length > 0) {
 
-            const features = response.features;
+                    // Clear existing list group content
+                    const listGroupContainer = document.getElementById('list-group');
+                    listGroupContainer.innerHTML = '';
 
-            // Dynamically generate list group items
-            features.forEach((feature, index) => {
-              const { user_namelast, user_namefrst, user_year, age, occupation } = feature.attributes;
+                    const features = response.features;
 
-              // Generate list group item HTML
-              const listGroupItemHTML = `
-                <a href="#" class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">${user_namefrst}, ${user_namelast}</h5>
-                    <small class="text-muted">${user_year ? user_year : '1910'}</small>
-                  </div>
-                  <p class="mb-1">${occupation ? occupation: 'No occupation listed'}</p>
-                  <small class="text-muted">Age ${age}</small>
-                </a>
-              `;
+                    // Dynamically generate list group items
+                    features.forEach((feature, index) => {
+                      const { user_namelast, user_namefrst, user_year, age, occupation } = feature.attributes;
 
-              // Append to the list group container
-              listGroupContainer.insertAdjacentHTML('beforeend', listGroupItemHTML);
-            });           
+                      // Generate list group item HTML
+                      const listGroupItemHTML = `
+                        <a href="#" class="list-group-item list-group-item-action">
+                          <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">${user_namefrst}, ${user_namelast}</h5>
+                            <small class="text-muted">${user_year ? user_year : '1910'}</small>
+                          </div>
+                          <p class="mb-1">${occupation ? occupation: 'No occupation listed'}</p>
+                          <small class="text-muted">Age ${age}</small>
+                        </a>
+                      `;
 
-            // Add click event listener to list group items
-            listGroupContainer.querySelectorAll('.list-group-item').forEach((item, index) => {
-              item.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent default anchor behavior
+                      // Append to the list group container
+                      listGroupContainer.insertAdjacentHTML('beforeend', listGroupItemHTML);
+                    });           
+                   
+                    // Add click event listener to list group items
+                    listGroupContainer.querySelectorAll('.list-group-item').forEach((item, index) => {
+                      item.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent default anchor behavior
 
-                // Access the clicked feature's attributes
-                const clickedFeature = features[index];
-                console.log(clickedFeature);
-                const recId = clickedFeature.attributes.pid;
-                // For the clicked record, query any census records for that person
-               // let censusQuery = recLocs.createQuery();
-                //censusQuery.where = "pid = '" + recId + "'" ; // use the person records ID number in the Census Records layer
-              //  censusQuery.outFields = ["*"];
-                // Execute the query for a persons' census records
-             //   recLocs.queryFeatures(censusQuery)
-               //   .then(function(response) {
-               //     if (response.features.length > 0) {
-                //    const features = response.features[0].attributes;
-                 //   console.log(features);
+                        // Access the clicked feature's attributes
+                        const clickedFeature = features[index];
+                        if (!clickedFeature) return; // Prevent errors if features array is empty
 
-                    const fieldNames = {
-                      user_namefrst: "First Name",
-                      user_namelast: "Last Name",
-                      labforce: "Labor Force",
-                      occupation: "Occupation",
-                      indstr: "Industry",
-                      classwkr: "Worker Class",
-                      ownership: "Ownership",
-                      race: "Race",
-                      relhouse: "Relation to Householder",
-                      industry: "Industry",
-                      age: "Age",
-                      user_bplstr: "Birthplace",
-                      user_nativity: "nativity",
-                      user_mtongue: "Mother Tongue",
-                      marst: "Marital Status", 
-                      birthyr: "Birth Year",
-                      lit: "Literate",
-                      fbpl: "Father Birthplace",
-                      mbpl: "Mother Birthplace",
-                      censusyear: "Census Year",
-                      citizenship: "Citizenship",
-                      user_fbplstr: "Father's Birthplace",
-                      mstatus: "Marital Status",
-                      natvlang: "Native Language",
-                      speakeng: "Speaks English",
-                      user_language: "Other Languages Spoken",
-                      sex: "Sex",
-                      wrkrclass: "Worker Class",
-                      year_immigrated: "Year Immigrated",
-                      hhtype: "Household Type",
-                      famsize: "Family Size",
-                      citizen: "Citizenship"
-                     
-                    };   
-                    
-                    recName.textContent = clickedFeature.attributes.user_namelast + ", " + clickedFeature.attributes.user_namefrst;
-                    table.innerHTML = ""; // Clear existing table content
-                    // Populate bootstrap Table with the attributes for the Census record. 
-                    for (const key in fieldNames) {
-                      if (features.hasOwnProperty(key)) {
-                        const row = document.createElement("tr");
-                        row.innerHTML = `<td><strong>${fieldNames[key]}</strong></td><td>${features[key] ?? 'N/A'}</td>`;
-                        table.appendChild(row);
-                      }
+                        console.log(clickedFeature);
+                        const recId = clickedFeature.attributes.pid;
+
+                        const fieldNames = {
+                          user_namefrst: "First Name",
+                          user_namelast: "Last Name",
+                          cc_specific_job_codes: "Job Code",
+                          occupation: "Occupation",
+                          indstr: "Industry",
+                          classwkr: "Worker Class",
+                          ownership: "Ownership",
+                          race: "Race",
+                          relhouse: "Relation to Householder",
+                          industry: "Industry",
+                          age: "Age",
+                          user_bplstr: "Birthplace",
+                          user_nativity: "Nativity",
+                          user_mtongue: "Mother Tongue",
+                          marst: "Marital Status",
+                          birthyr: "Birth Year",           
+                          censusyear: "Census Year",
+                          citizenship: "Citizenship",
+                          user_fbplstr: "Father's Birthplace",
+                          user_mbplstr: "Mother Birthplace",
+                          mstatus: "Marital Status",
+                          natvlang: "Native Language",
+                          speakeng: "Speaks English",
+                          user_language: "Other Languages Spoken",
+                          sex: "Sex",
+                          wrkrclass: "Worker Class",
+                          year_immigrated: "Year Immigrated",
+                          hhtype: "Household Type",
+                          famsize_1910: "Family Size",
+                          user_citizen: "Citizenship"
+                        };
+
+                        recName.textContent = `${clickedFeature.attributes.user_namelast}, ${clickedFeature.attributes.user_namefrst}`;
+                        table.innerHTML = ""; // Clear existing table content
+
+                        // Populate bootstrap Table with the attributes for the Census record
+                        for (const key in fieldNames) {
+                          if (clickedFeature.attributes.hasOwnProperty(key)) {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `<td><strong>${fieldNames[key]}</strong></td><td>${clickedFeature.attributes[key] ?? 'N/A'}</td>`;
+                            table.appendChild(row);
+                          }
+                        }
+                        // Show modal (make sure it's correctly initialized)
+                        const recModalInstance = new bootstrap.Modal(document.getElementById('recModal'));
+                        //recModalInstance.show();
+                        recModal.show();
+                      });
+                    });              
+                     } else {
+                      document.getElementById('list-group').innerHTML = '<i>No historical person records can be found for this building. Try clicking on another building.</i>';
                     }
-              //    } else {
-                 //   table.innerHTML = '<i>There is no Census record available for this person during this time period.</i>'
-                //    recName.textContent = "No Record Found"
-              //    }
-
-                     recModal.show();
-
+                    document.getElementById('offcanvasScrollingLabel').innerHTML = address;
+                    sideBar.show();
                   });
-                 
-              });
-            
-             } else {
-              document.getElementById('list-group').innerHTML = '<i>No historical person records can be found for this building. Try clicking on another building.</i>';
+              }
             }
-            document.getElementById('offcanvasScrollingLabel').innerHTML = address;
-            sideBar.show();
-          });
-      }
-    }
-  }
-);
+          }
+        );
       });
     </script>
   </head>
@@ -267,7 +257,7 @@ reactiveUtils.watch(
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="rec-name">Modal title</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="modalClose"></button>
       </div>
       <div class="modal-body">
         <table class="table table-striped table-bordered" id="census-table">
