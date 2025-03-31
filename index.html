@@ -1,0 +1,308 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Francophone Workplaces Example</title>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" /><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://js.arcgis.com/4.31/"></script>
+
+    <style>
+
+      /*Navbar height*/
+    .navbar {
+      height: 56.5px;  ss
+    }  
+
+     /*Main Navbar Title and Logo*/
+     .navbar-brand {
+        padding: 0 15px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;    
+     }
+
+      /*Map container*/
+      #viewDiv {
+        position: absolute;
+        top: 0;
+        bottom: 0;        
+        padding: 0;
+        margin-top: 56px;        
+        width: 100%;
+      }
+
+      #sidebar {
+        margin-top: 56px;
+      }
+
+      .esri-ui .esri-popup  {
+        display:  none !important;
+      }  
+
+      .modal-dialog {
+        position: absolute !important;        
+        right: 15px;
+        border-radius: 0px !important;
+        border-top-left-radius: 0px !important;
+      }
+
+      #census-table td, #census-table th {
+        padding: 10px;
+        white-space: nowrap;
+      }
+
+      .modal-backdrop { display: none; } .modal { pointer-events: none; }
+
+
+    </style>
+
+    <script>      
+      require(["esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/layers/TileLayer", "esri/core/reactiveUtils", "esri/Graphic",
+  "esri/layers/GraphicsLayer", "esri/geometry/geometryEngine"], (Map, MapView, FeatureLayer, TileLayer, reactiveUtils) => {
+
+        const sideBar = new bootstrap.Offcanvas('#sidebar');
+        const table = document.getElementById("census-table");
+        const recName = document.getElementById('rec-name');
+        const recModal = new bootstrap.Modal('#recModal', {
+          keyboard: false,
+          backdrop: false
+        });
+
+        const modal = document.getElementsByClassName("modal-dialog");
+        const personList = document.getElementById('list-group');
+
+        const map = new Map({
+          basemap: "hybrid"
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-88.5694, 47.1211],
+          zoom: 18
+         
+        });
+
+        /********************
+         * Add map layers
+         ********************/
+
+        // 1917 sanborn building footprints.
+        const FP1917 = new FeatureLayer({
+          url: "https://voyageur.mtu.edu/server/rest/services/Hosted/Francophone_workplace_footprints/FeatureServer",
+          id: "sanborn17",
+          outFields: ["*"]
+        });
+
+        map.add(FP1917);
+
+        const SB1917 = new TileLayer({
+          url: "https://portal1-geo.sabu.mtu.edu:6443/arcgis/rest/services/KeweenawHSDI/KeTT_1917_FIPS/MapServer"
+        });
+
+        map.add(SB1917, 0);
+
+        // historical person geocoded record locations layer
+        const recLocs = new FeatureLayer({
+          url: "https://voyageur.mtu.edu/server/rest/services/Hosted/Francophones_in_workplaces/FeatureServer/0",
+          id: "reclocs",
+          outFields: ["*"]
+        });
+
+        // historical census records
+        const censusRecs = new FeatureLayer({
+          url: "https://portal1-geo.sabu.mtu.edu/server/rest/services/Hosted/cesnsus_records_allyears/FeatureServer",
+          id: "cenrecs",
+          outFields: ["*"]
+        });       
+
+        // popup template for the footprints layer
+        FP1917.popupTemplate = {
+          content: "test"
+        };
+
+reactiveUtils.watch(
+  () => view.popup.selectedFeature,
+  (graphic) => {
+    if (graphic) {
+      if (graphic.layer.id === "sanborn17") {
+        const uniqueID = graphic.attributes.uniqueid;
+        const bldgID = graphic.attributes.building_id; // the building ID number from the historical record locations.
+        const address = graphic.attributes.name;
+        console.log(uniqueID, bldgID);
+        let query = recLocs.createQuery();
+        // query the person record locations for all people living in the bldgID
+        query.where = "building_id = '" + bldgID + "'";        
+        query.outFields = ["*"];
+        // execute the query for the historical records based on the id of the building clicked
+        recLocs.queryFeatures(query)
+          .then(function(response) {
+            console.log(response);
+            if (response.features.length > 0) {
+
+            // Clear existing list group content
+            const listGroupContainer = document.getElementById('list-group');
+            listGroupContainer.innerHTML = '';
+
+            const features = response.features;
+
+            // Dynamically generate list group items
+            features.forEach((feature, index) => {
+              const { user_namelast, user_namefrst, user_year, age, occupation } = feature.attributes;
+
+              // Generate list group item HTML
+              const listGroupItemHTML = `
+                <a href="#" class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">${user_namefrst}, ${user_namelast}</h5>
+                    <small class="text-muted">${user_year ? user_year : '1910'}</small>
+                  </div>
+                  <p class="mb-1">${occupation ? occupation: 'No occupation listed'}</p>
+                  <small class="text-muted">Age ${age}</small>
+                </a>
+              `;
+
+              // Append to the list group container
+              listGroupContainer.insertAdjacentHTML('beforeend', listGroupItemHTML);
+            });           
+
+            // Add click event listener to list group items
+            listGroupContainer.querySelectorAll('.list-group-item').forEach((item, index) => {
+              item.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default anchor behavior
+
+                // Access the clicked feature's attributes
+                const clickedFeature = features[index];
+                console.log(clickedFeature);
+                const recId = clickedFeature.attributes.pid;
+                // For the clicked record, query any census records for that person
+               // let censusQuery = recLocs.createQuery();
+                //censusQuery.where = "pid = '" + recId + "'" ; // use the person records ID number in the Census Records layer
+              //  censusQuery.outFields = ["*"];
+                // Execute the query for a persons' census records
+             //   recLocs.queryFeatures(censusQuery)
+               //   .then(function(response) {
+               //     if (response.features.length > 0) {
+                //    const features = response.features[0].attributes;
+                 //   console.log(features);
+
+                    const fieldNames = {
+                      user_namefrst: "First Name",
+                      user_namelast: "Last Name",
+                      labforce: "Labor Force",
+                      occupation: "Occupation",
+                      indstr: "Industry",
+                      classwkr: "Worker Class",
+                      ownership: "Ownership",
+                      race: "Race",
+                      relhouse: "Relation to Householder",
+                      industry: "Industry",
+                      age: "Age",
+                      user_bplstr: "Birthplace",
+                      user_nativity: "nativity",
+                      user_mtongue: "Mother Tongue",
+                      marst: "Marital Status", 
+                      birthyr: "Birth Year",
+                      lit: "Literate",
+                      fbpl: "Father Birthplace",
+                      mbpl: "Mother Birthplace",
+                      censusyear: "Census Year",
+                      citizenship: "Citizenship",
+                      user_fbplstr: "Father's Birthplace",
+                      mstatus: "Marital Status",
+                      natvlang: "Native Language",
+                      speakeng: "Speaks English",
+                      user_language: "Other Languages Spoken",
+                      sex: "Sex",
+                      wrkrclass: "Worker Class",
+                      year_immigrated: "Year Immigrated",
+                      hhtype: "Household Type",
+                      famsize: "Family Size",
+                      citizen: "Citizenship"
+                     
+                    };   
+                    
+                    recName.textContent = clickedFeature.attributes.user_namelast + ", " + clickedFeature.attributes.user_namefrst;
+                    table.innerHTML = ""; // Clear existing table content
+                    // Populate bootstrap Table with the attributes for the Census record. 
+                    for (const key in fieldNames) {
+                      if (features.hasOwnProperty(key)) {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td><strong>${fieldNames[key]}</strong></td><td>${features[key] ?? 'N/A'}</td>`;
+                        table.appendChild(row);
+                      }
+                    }
+              //    } else {
+                 //   table.innerHTML = '<i>There is no Census record available for this person during this time period.</i>'
+                //    recName.textContent = "No Record Found"
+              //    }
+
+                     recModal.show();
+
+                  });
+                 
+              });
+            
+             } else {
+              document.getElementById('list-group').innerHTML = '<i>No historical person records can be found for this building. Try clicking on another building.</i>';
+            }
+            document.getElementById('offcanvasScrollingLabel').innerHTML = address;
+            sideBar.show();
+          });
+      }
+    }
+  }
+);
+      });
+    </script>
+  </head>
+
+  <body>
+     <div class="modal" tabindex="-1" id="recModal" data-bs-backdrop="false" data-bs-scroll="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rec-name">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-striped table-bordered" id="census-table">
+</table>
+      </div>      
+    </div>
+  </div>
+</div>
+<!-- <div class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="recModal" aria-labelledby="offcanvasScrollingLabel">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="rec-name"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body" >
+         <table class="table table-striped table-bordered" id="census-table">
+</table>
+      </div>
+    </div> -->
+    <div class="offcanvas offcanvas-start" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="sidebar" aria-labelledby="offcanvasScrollingLabel">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="offcanvasScrollingLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+         <div class="list-group" id="list-group"></div>
+      </div>
+    </div>
+    <!-- Image and text -->
+<nav class="navbar navbar-light bg-light">
+  <a class="navbar-brand" href="#">
+    <img src="logo.png" width="50" height="50" class="d-inline-block align-top" alt="">
+    &nbsp;Where Francophones Worked in 1910
+  </a>
+</nav>
+    <div id="viewDiv"></div>
+    
+  </body>
+</html>
