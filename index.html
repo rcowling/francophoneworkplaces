@@ -45,8 +45,7 @@
 
       .modal-dialog {
         position: absolute !important;        
-        right: 15px;
-        top: 50px;
+        right: 15px;        
         border-radius: 0px !important;
         border-top-left-radius: 0px !important;
       }
@@ -144,6 +143,15 @@
                 query.where = "building_id = '" + bldgID + "'";        
                 query.outFields = ["*"];
                 // execute the query for the historical records based on the id of the building clicked
+                // Define job code colors
+                const jobCodeColors = {
+                  1: "#d9e2f3",
+                  2: "#f4cccc",
+                  3: "#d9ead3",
+                  4: "#fff2cc",
+                  5: "#cfe2f3",
+                  // Add more codes as needed
+                };
                 recLocs.queryFeatures(query)
                   .then(function(response) {
                     console.log(response);
@@ -157,11 +165,11 @@
 
                     // Dynamically generate list group items
                     features.forEach((feature, index) => {
-                      const { user_namelast, user_namefrst, user_year, age, occupation } = feature.attributes;
+                      const { user_namelast, user_namefrst, user_year, age, occupation, cc_specific_job_codes } = feature.attributes;
 
                       // Generate list group item HTML
                       const listGroupItemHTML = `
-                        <a href="#" class="list-group-item list-group-item-action">
+                        <a href="#" class="list-group-item list-group-item-action" data-job-code="${cc_specific_job_codes}">
                           <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1">${user_namefrst}, ${user_namelast}</h5>
                             <small class="text-muted">${user_year ? user_year : '1910'}</small>
@@ -177,6 +185,22 @@
                    
                     // Add click event listener to list group items
                     listGroupContainer.querySelectorAll('.list-group-item').forEach((item, index) => {
+                      const jobCode = parseInt(item.getAttribute('data-job-code'), 10);
+                      console.log(item);
+                      if (jobCode  === 1 || jobCode === 2) {
+                        item.style.backgroundColor = '#d9e2f3';
+                      } else if (jobCode  >= 3 && jobCode <= 8) {
+                        item.style.backgroundColor = '#fbe4d5';
+                      } else if (jobCode  === 9 || jobCode === 10) {
+                        item.style.backgroundColor = '#fef2cb';
+                      } else if (jobCode  === 11 || jobCode === 12) {
+                        item.style.backgroundColor = '#ececec';
+                      } else if (jobCode === 13) {
+                        item.style.backgroundColor = '#e2efd9';
+                      }
+
+                      item.style.borderColor = '#ffffff';
+                      
                       item.addEventListener('click', (e) => {
                         e.preventDefault(); // Prevent default anchor behavior
 
