@@ -179,17 +179,47 @@
 
                     // Dynamically generate list group items
                     features.forEach((feature, index) => {
-                      const { user_namelast, user_namefrst, user_year, age, occupation, cc_specific_job_codes } = feature.attributes;
+                      const { user_namelast, user_namefrst, user_year, age, occupation, cc_specific_job_codes} = feature.attributes;
+
+                      let jobCodeText = feature.attributes.cc_specific_job_codes;
+
+                      if (jobCodeText === 1) {
+                        jobCodeText = "Managers, agents, professionals";
+                      } else if (jobCodeText === 2) {
+                        jobCodeText = "White collar";
+                      } else if (jobCodeText === 3) {
+                        jobCodeText = "Mining - Skilled – underground";
+                      } else if (jobCodeText === 4) {
+                        jobCodeText = "Mining - Skilled – above ground";
+                      } else if (jobCodeText === 5) {
+                        jobCodeText = "Mining - Timberman - underground";
+                      } else if (jobCodeText === 6) {
+                        jobCodeText = "Mining - Carpenter - above ground";
+                      } else if (jobCodeText === 7) {
+                        jobCodeText = "Mining - Unskilled – underground or unknown";
+                      } else if (jobCodeText === 8) {
+                        jobCodeText = "Mining - Unskilled – above ground";
+                      } else if (jobCodeText === 9) {
+                        jobCodeText = "Lumber - Skilled (inlc carpenters)";
+                      } else if (jobCodeText === 10) {
+                        jobCodeText = "Lumber - Unskilled";
+                      } else if (jobCodeText === 11) {
+                        jobCodeText = "Non mining, non lumber - Skilled";
+                      } else if (jobCodeText === 12) {
+                        jobCodeText = "Non mining, non lumber - Unskilled";
+                      } else if (jobCodeText === 13) {
+                        jobCodeText = "Agriculture";
+                      }
 
                       // Generate list group item HTML
                       const listGroupItemHTML = `
                         <a href="#" class="list-group-item list-group-item-action" data-job-code="${cc_specific_job_codes}">
                           <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1">${user_namefrst}, ${user_namelast}</h5>
-                            <small class="text-muted">${user_year ? user_year : '1910'}</small>
+                            <small class="text-muted">Age ${age}</small>
                           </div>
                           <p class="mb-1">${occupation ? occupation: 'No occupation listed'}</p>
-                          <small class="text-muted">Age ${age}</small>
+                          <small class="text-muted">${jobCodeText}</small>
                         </a>
                       `;
 
@@ -221,6 +251,23 @@
                         // Access the clicked feature's attributes
                         const clickedFeature = features[index];
                         if (!clickedFeature) return; // Prevent errors if features array is empty
+
+                        const recHeader = document.getElementById('recHeader');
+                        const jobCode = clickedFeature.attributes.cc_specific_job_codes; 
+
+                        if (jobCode === 1 || jobCode === 2) {
+                            recHeader.style.backgroundColor = '#d9e2f3';
+                        } else if (jobCode >= 3 && jobCode <= 8) {
+                            recHeader.style.backgroundColor = '#fbe4d5';
+                        } else if (jobCode === 9 || jobCode === 10) {
+                            recHeader.style.backgroundColor = '#fef2cb';
+                        } else if (jobCode === 11 || jobCode === 12) {
+                            recHeader.style.backgroundColor = '#ececec';
+                        } else if (jobCode === 13) {
+                            recHeader.style.backgroundColor = '#e2efd9';
+                        } else {
+                            recHeader.style.backgroundColor = ''; // Reset or default color
+                        }
 
                         console.log(clickedFeature);
                         const recId = clickedFeature.attributes.pid;
@@ -293,7 +340,7 @@
      <div class="modal" tabindex="-1" id="recModal" data-bs-backdrop="false" data-bs-scroll="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header" id="recHeader">
         <h5 class="modal-title" id="rec-name">Modal title</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="modalClose"></button>
       </div>
