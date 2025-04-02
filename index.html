@@ -148,6 +148,7 @@
           (graphic) => {
             if (graphic) {
               if (graphic.layer.id === "sanborn17") {
+                recModal.hide();
                 const uniqueID = graphic.attributes.uniqueid;
                 const bldgID = graphic.attributes.building_id; // the building ID number from the historical record locations.
                 const address = graphic.attributes.name;
